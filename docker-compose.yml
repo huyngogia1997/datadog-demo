@@ -1,0 +1,70 @@
+version: '3'
+services:
+  agent:
+    image: "gcr.io/datadoghq/agent:7"
+    environment:
+      - DD_API_KEY=e86a435d0f885b066db80db33e93118c
+      # - DD_HOSTNAME=DemoProject2
+      - DD_SITE=datadoghq.com
+      - DD_APM_ENABLED=true
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_PROCESS_AGENT_ENABLED=true
+      - DD_DOGSTATSD_DISABLE=false
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      # - DD_DOGSTATSD_TAGS=env:SIT service:sit  version:1.0.0
+      - DD_TRACE_AGENT_PORT=8127
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    ports:
+      - 8126:8126
+      - 8125:8125/udp
+      - 127.0.0.1:8127:8127/tcp
+    networks:
+      - common-network
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "agent", "service": "agent"}]'
+  api:
+    image: "huyngdocker/dd-api"
+    depends_on:
+      - agent
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "api", "service": "api"}]'
+      com.datadoghq.tags.env: SIT
+      com.datadoghq.tags.service: dd-api7
+      com.datadoghq.tags.version: 2.0.0 
+    networks:
+      - common-network
+    ports:
+      - 8080:8080
+    environment:
+      # - DD_SERVICE=dd-api7
+      # - DD_ENV=SIT
+      # - DD_VERSION=0.0.1
+      - DD_LOGS_INJECTION=true
+      - DD_TRACE_SAMPLE_RATE=1
+      - DD_AGENT_HOST=host.docker.internal
+      - DD_TRACE_ENABLED=true
+      - DD_JMXFETCH_ENABLED=true
+      - DD_JMXFETCH_STATSD_HOST=host.docker.internal
+      - DD_APM_ENABLED=true
+      - DD_PROFILING_ENABLED=true
+  api-simulator:
+    image: "huyngdocker/simulator"
+    environment:
+      - DD_AGENT_HOST=host.docker.internal
+    depends_on:
+      - agent
+      - api
+    networks:
+      - common-network
+networks:
+  common-network:
+    driver: bridge
+volumes:
+  gradle-cache:
+
+
+
